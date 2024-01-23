@@ -20,7 +20,7 @@ Holds the GPIO pin low for the specified duration.
 Reads temperature and humidity values from the DHT11 sensor. This blocking function forces the CPU to wait for the necessary duration.
 ## Example use
 ```
-#include "esp32-dht.h"
+#include "esp32-dht11.h"
 #define CONFIG_DHT11_PIN GPIO_NUM_4
 #define CONFIG_CONNECTION_TIMEOUT 5
 
