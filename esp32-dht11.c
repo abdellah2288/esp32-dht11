@@ -7,7 +7,7 @@ int wait_for_state(dht11_t dht11,int state,int timeout)
     
     while(gpio_get_level(dht11.dht11_pin) != state)
     {
-        if(count == timeout) return -1;
+        if(count >= timeout) return -1;
         count += 2;
         ets_delay_us(2);
         
@@ -31,7 +31,7 @@ int dht11_read(dht11_t *dht11,int connection_timeout)
     int zero_duration = 0;
     int timeout_counter = 0;
 
-    uint8_t recieved_data[5] = 
+    uint8_t received_data[5] =
     {
         0x00,
         0x00,
@@ -56,16 +56,16 @@ int dht11_read(dht11_t *dht11,int connection_timeout)
         } 
 
 
-        waited = wait_for_state(*dht11,1,80);
-        if(waited == -1) 
+        waited = wait_for_state(*dht11,1,90);
+        if(waited == -1)
         {
             ESP_LOGE("DHT11:","Failed at phase 2");
             ets_delay_us(20000);
             continue;
         } 
         
-        waited = wait_for_state(*dht11,0,80);
-        if(waited == -1) 
+        waited = wait_for_state(*dht11,0,90);
+        if(waited == -1)
         {
             ESP_LOGE("DHT11:","Failed at phase 3");
             ets_delay_us(20000);
@@ -81,12 +81,20 @@ int dht11_read(dht11_t *dht11,int connection_timeout)
     {
         for(int j = 0; j < 8; j++)
         {
-            zero_duration = wait_for_state(*dht11,1,60);         
-            one_duration = wait_for_state(*dht11,0,80);
-            recieved_data[i] |= (one_duration > zero_duration) << (7 - j);
+            zero_duration = wait_for_state(*dht11,1,58);
+            one_duration = wait_for_state(*dht11,0,74);
+            received_data[i] |= (one_duration > zero_duration) << (7 - j);
         }
     }
-    dht11->humidity = recieved_data[0] + recieved_data[1] /10.0 ;
-    dht11->temperature = recieved_data[2] + recieved_data[3] /10.0 ;
-    return 0;
+    int crc = received_data[0]+received_data[1]+received_data[2]+received_data[3];
+    crc = crc & 0xff;
+    if(crc == received_data[4]) {
+      dht11->humidity = received_data[0] + received_data[1] / 10.0;
+      dht11->temperature = received_data[2] + received_data[3] / 10.0;
+      return 0;
+    }
+    else {
+        ESP_LOGE("DHT11:", "Wrong checksum");
+        return -1;
+    }
 }
